@@ -1,0 +1,35 @@
+This is a group project of 3 students at Monash University for the subject: Information and Computer Security(FIT5163) on the topic ElGamal encryption which is used in various software and cryptosystems, including the free GNU Privacy Guard software and recent versions of PGP. It's worth noting that the Digital Signature Algorithm (DSA) is a variant of the ElGamal signature scheme, but it's not the same as ElGamal encryption. While they share some similarities, they serve different purposes in the world of cryptography.
+
+In this project we'll be implementing the ElGamal encryption algorithm, a fundamental concept in public-key cryptography. If you're interested in learning more, we recommend checking out Section 8.4 of the "Handbook of Applied Cryptography" (available online at https://cacr.uwaterloo.ca/hac/about/chap8.pdf).
+
+Task Breakdown
+
+To complete this project, we'll perform the following tasks:
+
+1. Audio File Preparation
+
+    We will use a WAV format audio file as input.
+
+2. Key Generation
+
+    Generate a public and private key pair for ElGamal encryption.
+    Choose a suitable large prime number p and generator g.
+
+3. Encryption and Decryption
+
+    Encrypt the audio file using the ElGamal encryption algorithm.
+    Decrypt the encrypted audio file to recover its original form.
+
+4. Validation
+
+    Compare the decrypted audio file to the original audio file.
+    Verify that the decrypted audio file matches the original in terms of integrity and quality.
+
+
+    Names of Team Members in the Group working on this project are:
+
+    1. Vineet Mallya
+    2. Madhurjya Das
+    3. Son Hieu Nguyen
+
+
