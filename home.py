@@ -1,6 +1,7 @@
 from flask import Flask, request, jsonify, send_file, render_template
 import os
 import wave
+import struct
 import Audio
 import Elgamal
 
@@ -30,19 +31,20 @@ def real():
 def demo():
     return render_template('demo.html')
 
-# Common functions for key generation, conversion, encryption, decryption
+# Key generation
 @app.route('/generate-keys', methods=['GET'])
 def generate_keys():
-    private_key, public_key, p, g = Elgamal.elgamal_keygen(32)
+    private_key, public_key, p, g = Elgamal.elgamal_keygen(128)
     keys['private_key'] = private_key
     keys['public_key'] = public_key
     keys['p'] = p
     keys['g'] = g
     return jsonify({
-        'public_key': public_key,
-        'private_key': private_key
+        'public_key': str(public_key),
+        'private_key': str(private_key)
     })
 
+# Audio to integers conversion
 @app.route('/convert-to-integers', methods=['POST'])
 def convert_to_integers():
     if 'audio_file' not in request.files:
@@ -55,21 +57,25 @@ def convert_to_integers():
     file_path = os.path.join(ENCRYPTED_DIR, audio_file.filename)
     audio_file.save(file_path)
 
-    # Convert audio to integers
+    # Convert audio to binary
     binary_data, params = Audio.audio_to_binary(file_path)
 
     # Save audio parameters for later use
     with open(os.path.join(ENCRYPTED_DIR, PARAMS_FILE), 'w') as param_file:
         param_file.write(f"{params.nchannels} {params.sampwidth} {params.framerate} {params.nframes}")
 
-    # Save the binary data to a file for encryption
+    # Adjust audio samples before encryption (range 0-65535)
+    adjusted_data = [sample + 32768 for sample in binary_data]
+
+    # Save the adjusted binary data to a file
     binary_file_path = os.path.join(ENCRYPTED_DIR, 'binary_data.txt')
     with open(binary_file_path, 'w') as f:
-        for item in binary_data:
+        for item in adjusted_data:
             f.write(f"{item}\n")
 
     return jsonify({'success': True})
 
+# Encryption
 @app.route('/encrypt-audio', methods=['GET'])
 def encrypt_audio():
     if 'public_key' not in keys or 'private_key' not in keys:
@@ -102,6 +108,7 @@ def encrypt_audio():
     
     return jsonify({'success': True})
 
+# Decryption
 @app.route('/decrypt-audio', methods=['POST'])
 def decrypt_audio():
     private_key = int(request.form['private_key'])
@@ -115,28 +122,43 @@ def decrypt_audio():
     encrypted_file.save(file_path)
 
     with open(file_path, 'r', encoding='utf-8', errors='ignore') as f:
-        encrypted_data = [tuple(map(int, line.strip().split())) for line in f]
+        encrypted_data = []
+        for line in f:
+            parts = line.strip().split()
+            if len(parts) != 2:
+                continue
+            try:
+                c1, c2 = map(int, parts)
+                encrypted_data.append((c1, c2))
+            except ValueError:
+                continue
+
+    if not encrypted_data:
+        return jsonify({'error': 'No valid encrypted data found.'}), 400
 
     # Decrypt each data point
     for c1, c2 in encrypted_data:
         message = Elgamal.elgamal_decrypt(p, private_key, c1, c2)
         decrypted_data.append(message)
-    
+
+    # Adjust back to original range after decryption
+    adjusted_data = [int(message - 32768) for message in decrypted_data]
+
     # Save decrypted integers to file for converting back to audio
     decrypted_file_path = os.path.join(DECRYPTED_DIR, 'decrypted_data.txt')
     with open(decrypted_file_path, 'w') as f:
-        for message in decrypted_data:
+        for message in adjusted_data:
             f.write(f"{message}\n")
     
     return jsonify({'success': True})
 
+# Convert decrypted data to audio
 @app.route('/convert-to-audio', methods=['GET'])
 def convert_to_audio():
     decrypted_file_path = os.path.join(DECRYPTED_DIR, 'decrypted_data.txt')
 
-    # Load decrypted data
     if not os.path.exists(decrypted_file_path):
-        return jsonify({'error': 'No decrypted data found. Please decrypt audio first.'}), 400
+        return jsonify({'error': 'No decrypted data found.'}), 400
     
     with open(decrypted_file_path, 'r') as f:
         decrypted_data = [int(line.strip()) for line in f]
@@ -147,12 +169,9 @@ def convert_to_audio():
         nchannels, sampwidth, framerate, nframes = map(int, param_file.read().split())
         params = wave._wave_params(nchannels, sampwidth, framerate, nframes, 'NONE', 'not compressed')
 
-    # Adjust decrypted data back to original range
-    adjusted_data = [int(sample - 32768) for sample in decrypted_data]
-
-    # Convert back to audio file
+    # Convert back to audio
     decrypted_audio_path = os.path.join(DECRYPTED_DIR, 'decrypted_audio.wav')
-    Audio.binary_to_audio(adjusted_data, params, decrypted_audio_path)
+    Audio.binary_to_audio(decrypted_data, params, decrypted_audio_path)
 
     return send_file(decrypted_audio_path, as_attachment=True)
 

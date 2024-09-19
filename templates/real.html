@@ -65,8 +65,8 @@
                 .then(response => response.json())
                 .then(data => {
                     document.getElementById("keys-output").innerHTML = `
-                        <strong>Public Key:</strong> ${data.public_key}<br>
-                        <strong>Private Key:</strong> ${data.private_key}`;
+                        <strong>Public Key:</strong> ${BigInt(data.public_key).toString()}<br>
+                        <strong>Private Key:</strong> ${BigInt(data.private_key).toString()}`;
                 })
                 .catch(err => {
                     console.error("Error generating keys:", err);
