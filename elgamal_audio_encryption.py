@@ -94,8 +94,13 @@ def binary_to_audio(binary_data, params, audio_file, log_file=''):
 
 def main():
     # Define paths
-    encrypted_dir = '/Users/madhurjya/Downloads/encrypted_files/'
-    decrypted_dir = '/Users/madhurjya/Downloads/decrypted_files/'
+    # Get the current directory of the application
+    current_dir = os.getcwd()
+
+    # Use relative paths by joining with the current directory
+    encrypted_dir = os.path.join(current_dir, 'encrypted_files')
+    decrypted_dir = os.path.join(current_dir, 'decrypted_files')
+
     
     # Ensure directories exist
     os.makedirs(encrypted_dir, exist_ok=True)
