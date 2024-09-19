@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ElGamal Audio Encryption Demo</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        h1, h2 { color: #333; }
+        button { padding: 10px 15px; margin-top: 10px; }
+        .box { padding: 10px; border: 1px solid #ccc; margin-top: 20px; }
+    </style>
+</head>
+<body>
+    <h1>ElGamal Encryption Demo for Audio Files</h1>
+
+    <!-- Key Generation Step -->
+    <h2>Step 1: Generate Keys</h2>
+    <button onclick="generateKeys()">Generate Keys</button>
+    <div id="keys-output" class="box"></div>
+
+    <!-- Select Audio File -->
+    <h2>Step 2: Select an Audio File for Encryption</h2>
+    <form id="upload-form" enctype="multipart/form-data">
+        <input type="file" id="file_input" name="audio_file" accept=".wav" required>
+        <br><br>
+        <button type="button" onclick="convertToIntegers()">Convert to Integer</button>
+    </form>
+    <div id="audio-preview" class="box"></div>
+
+    <!-- Encrypt Audio -->
+    <h2>Step 3: Encrypt the Audio</h2>
+    <button onclick="encryptAudio()">Encrypt Audio</button>
+    <div id="encryption-output" class="box"></div>
+
+    <!-- Decrypt Encrypted Audio -->
+    <h2>Step 4: Decrypt the Audio</h2>
+    <button onclick="decryptAudio()">Decrypt Audio</button>
+    <div id="decryption-output" class="box"></div>
+
+    <!-- Convert Decrypted Integers back to Audio -->
+    <h2>Step 5: Convert Decrypted Integers to Audio</h2>
+    <button onclick="convertToAudio()">Convert to Audio</button>
+    <div id="audio-download" class="box"></div>
+
+    <script>
+        // Function to generate public and private keys
+function generateKeys() {
+    fetch('/generate-keys')
+        .then(response => response.json())
+        .then(data => {
+            document.getElementById("keys-output").innerHTML = `
+                <strong>Public Key:</strong> ${data.public_key}<br>
+                <strong>Private Key:</strong> ${data.private_key}`;
+        })
+        .catch(err => {
+            console.error("Error generating keys:", err);
+            alert("Error generating keys.");
+        });
+}
+
+// Function to convert audio file to integers
+function convertToIntegers() {
+    const form = document.getElementById('upload-form');
+    const formData = new FormData(form);
+
+    fetch('/convert-to-integers', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.error) {
+            alert(data.error);
+        } else {
+            document.getElementById("audio-preview").innerHTML = `Audio file successfully converted to integers.`;
+        }
+    })
+    .catch(err => {
+        console.error("Error converting to integers:", err);
+        alert("Error converting the audio file to integers.");
+    });
+}
+
+// Function to encrypt the audio
+function encryptAudio() {
+    fetch('/encrypt-audio')
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                document.getElementById("encryption-output").innerHTML = `Audio file successfully encrypted. Encrypted data saved.`;
+            } else {
+                alert("Error encrypting audio file.");
+            }
+        })
+        .catch(err => {
+            console.error("Error encrypting audio:", err);
+            alert("Error encrypting the audio file.");
+        });
+}
+
+// Function to decrypt the audio
+function decryptAudio() {
+    const form = document.getElementById('decrypt-form');
+    const formData = new FormData(form);
+
+    fetch('/decrypt-audio', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            document.getElementById("decryption-output").innerHTML = `Audio file successfully decrypted. Decrypted data saved.`;
+        } else {
+            alert("Error decrypting audio file.");
+        }
+    })
+    .catch(err => {
+        console.error("Error decrypting audio:", err);
+        alert("Error decrypting the audio file.");
+    });
+}
+
+// Function to convert decrypted integers back to audio file
+function convertToAudio() {
+    fetch('/convert-to-audio')
+        .then(response => response.blob())
+        .then(blob => {
+            const url = window.URL.createObjectURL(blob);
+            const downloadLink = document.createElement('a');
+            downloadLink.href = url;
+            downloadLink.download = 'decrypted_audio.wav';
+            downloadLink.click();
+        })
+        .catch(err => {
+            console.error("Error converting to audio:", err);
+            alert("Error converting decrypted integers back to audio.");
+        });
+}
+
+    </script>
+</body>
+</html>
