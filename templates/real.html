@@ -33,7 +33,6 @@
                     <label for="file_input">Choose Audio File to Encrypt:</label>
                     <input type="file" id="file_input" name="audio_file" accept=".wav" required>
                 </div>
-                <!-- <button type="button" onclick="convertToIntegers()">Convert to Integers</button> -->
                 <button type="button" onclick="encryptAudio()">Encrypt Audio</button>
             </form>
             <div id="encryption-output" class="form-group"></div>
@@ -75,44 +74,37 @@
                 });
         }
 
-        // Convert audio file to integers
-        function convertToIntegers() {
+        // Encrypt the audio file with background conversion
+        function encryptAudio() {
             const form = document.getElementById('upload-form');
             const formData = new FormData(form);
 
+            // First convert to integers in the background, then encrypt
             fetch('/convert-to-integers', {
                 method: 'POST',
                 body: formData
             })
             .then(response => response.json())
             .then(data => {
-                if (data.error) {
-                    alert(data.error);
+                if (data.success) {
+                    // Once the conversion is successful, encrypt the audio
+                    fetch('/encrypt-audio')
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.success) {
+                                document.getElementById("encryption-output").innerHTML = `Audio file successfully encrypted.`;
+                            } else {
+                                alert("Error encrypting audio file.");
+                            }
+                        });
                 } else {
-                    document.getElementById("encryption-output").innerHTML = `Audio file successfully converted to integers.`;
+                    alert("Error converting audio file to integers.");
                 }
             })
             .catch(err => {
-                console.error("Error converting to integers:", err);
-                alert("Error converting the audio file to integers.");
+                console.error("Error encrypting audio:", err);
+                alert("Error encrypting the audio file.");
             });
-        }
-
-        // Encrypt the audio
-        function encryptAudio() {
-            fetch('/encrypt-audio')
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        document.getElementById("encryption-output").innerHTML = `Audio file successfully encrypted.`;
-                    } else {
-                        alert("Error encrypting audio file.");
-                    }
-                })
-                .catch(err => {
-                    console.error("Error encrypting audio:", err);
-                    alert("Error encrypting the audio file.");
-                });
         }
 
         // Decrypt the audio
