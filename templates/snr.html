@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SNR Calculation</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        h1, h2 { color: #333; }
+        .form-group { margin-bottom: 15px; }
+        label { display: block; margin-bottom: 5px; }
+        input[type="file"] { padding: 5px; }
+        button { padding: 10px 15px; cursor: pointer; }
+        #snr-result { margin-top: 20px; }        
+    </style>
+</head>
+<body>
+    <h1>SNR Calculation for Audio Files</h1>
+    
+    <form id="snr-form" enctype="multipart/form-data">
+        <div class="form-group">
+            <label for="original_file">Choose Original Audio File (WAV):</label>
+            <input type="file" id="original_file" name="original_file" accept=".wav" required>
+        </div>
+
+        <div class="form-group">
+            <label for="decrypted_file">Choose Decrypted Audio File (WAV):</label>
+            <input type="file" id="decrypted_file" name="decrypted_file" accept=".wav" required>
+        </div>
+
+        <button type="button" onclick="calculateSNR()">Calculate SNR</button>
+    </form>
+
+    <!-- SNR result -->
+    <div id="snr-result" style="margin-top: 20px;"></div>
+
+    <script>
+        function calculateSNR() {
+            const form = document.getElementById('snr-form');
+            const formData = new FormData(form);
+
+            fetch('/calculate-snr', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => {
+                if (!response.ok) {
+                    return response.text().then(text => { throw new Error(text); });
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data.error) {
+                    alert(data.error);
+                } else {
+                    document.getElementById("snr-result").innerHTML = `SNR: ${data.snr} dB`;
+                }
+            })
+            .catch(err => {
+                console.error("Error calculating SNR:", err);
+                document.getElementById("snr-result").innerHTML = `Error calculating SNR: ${err.message}`;
+            });
+        }
+    </script>
+</body>
+</html>

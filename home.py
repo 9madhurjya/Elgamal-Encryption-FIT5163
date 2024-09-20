@@ -4,6 +4,8 @@ import wave
 import struct
 import Audio
 import Elgamal
+import magic
+import numpy as np
 
 app = Flask(__name__)
 
@@ -174,6 +176,99 @@ def convert_to_audio():
     Audio.binary_to_audio(decrypted_data, params, decrypted_audio_path)
 
     return send_file(decrypted_audio_path, as_attachment=True)
+
+# Route to display the SNR page
+@app.route('/snr')
+def snr():
+    return render_template('snr.html')
+
+# Function to check if the file is a valid WAV file
+def is_valid_wave(file_path):
+    try:
+        with wave.open(file_path, 'rb') as wave_file:
+            # Check that the file has basic WAV properties
+            params = wave_file.getparams()
+            if params.nchannels > 0 and params.sampwidth > 0 and params.framerate > 0:
+                return True
+    except wave.Error:
+        return False
+    return False
+
+# Function to calculate SNR
+def compute_snr(original_path, decrypted_path):
+    with wave.open(original_path, 'rb') as original_wave:
+        original_data = np.frombuffer(original_wave.readframes(-1), dtype=np.int16)
+    
+    with wave.open(decrypted_path, 'rb') as decrypted_wave:
+        decrypted_data = np.frombuffer(decrypted_wave.readframes(-1), dtype=np.int16)
+    
+    if len(original_data) != len(decrypted_data):
+        raise ValueError("The original and decrypted files have different lengths.")
+    
+    noise = original_data - decrypted_data
+    signal_power = np.sum(original_data ** 2)
+    noise_power = np.sum(noise ** 2)
+    
+    if noise_power == 0:
+        return float('inf')  # Infinite SNR means no noise
+    
+    snr = 10 * np.log10(signal_power / noise_power)
+    return snr
+
+# SNR calculation route
+@app.route('/calculate-snr', methods=['POST'])
+def calculate_snr():
+    # Save the files temporarily for processing
+    original_file = request.files['original_file']
+    decrypted_file = request.files['decrypted_file']
+    
+    # Ensure the 'temp' directory exists
+    temp_dir = 'temp'
+    if not os.path.exists(temp_dir):
+        os.makedirs(temp_dir)  # Create 'temp' directory if it doesn't exist
+    
+    original_path = os.path.join(temp_dir, 'original.wav')
+    decrypted_path = os.path.join(temp_dir, 'decrypted.wav')
+    
+    # Save files to temp folder
+    original_file.save(original_path)
+    decrypted_file.save(decrypted_path)
+    
+    # Validate if the files are valid WAV audio files
+    if not is_valid_wave(original_path) or not is_valid_wave(decrypted_path):
+        # Delete the files if they are not valid
+        if os.path.exists(original_path):
+            os.remove(original_path)
+        if os.path.exists(decrypted_path):
+            os.remove(decrypted_path)
+        return jsonify({'error': 'Both files must be valid WAV format.'}), 400
+    
+    try:
+        # Calculate SNR
+        snr_value = compute_snr(original_path, decrypted_path)
+        # Convert 'inf' or '-inf' to string for valid JSON
+        if np.isinf(snr_value):
+            snr_value = "Infinity" if snr_value > 0 else "-Infinity"
+        
+        result = jsonify({'snr': snr_value})
+        
+        # After calculation, remove the temporary files
+        if os.path.exists(original_path):
+            os.remove(original_path)
+        if os.path.exists(decrypted_path):
+            os.remove(decrypted_path)
+        
+        return result
+    except ValueError as e:
+        return jsonify({'error': str(e)}), 400
+    except Exception as e:
+        return jsonify({'error': 'An error occurred during SNR calculation.'}), 500
+    finally:
+        # Ensure files are deleted in case of an error as well
+        if os.path.exists(original_path):
+            os.remove(original_path)
+        if os.path.exists(decrypted_path):
+            os.remove(decrypted_path)
 
 if __name__ == '__main__':
     app.run(debug=True)
