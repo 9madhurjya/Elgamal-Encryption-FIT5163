@@ -16,6 +16,15 @@
         input[type="text"], input[type="file"], input[type="number"] {
             width: 100%; padding: 10px; margin-top: 5px; border: 1px solid #ccc;
         }
+        /* CSS for wrapping long key strings */
+        pre {
+            white-space: pre-wrap;  /* Wraps the text in long strings */
+            word-wrap: break-word;  /* Ensures long words are broken */
+            border: 1px solid #ccc;
+            padding: 10px;
+            background-color: #f9f9f9;
+            font-size: 14px;
+        }
     </style>
 </head>
 <body>
@@ -26,7 +35,10 @@
         <div class="box">
             <h2>Encryption Section</h2>
             <button onclick="generateKeys()">Generate Keys</button>
-            <div id="keys-output" class="form-group"></div>
+            <div id="keys-output" class="form-group">
+                <pre id="public-key"></pre>
+                <pre id="private-key"></pre>
+            </div>
 
             <form id="upload-form" enctype="multipart/form-data">
                 <div class="form-group">
@@ -64,9 +76,8 @@
             fetch('/generate-keys')
                 .then(response => response.json())
                 .then(data => {
-                    document.getElementById("keys-output").innerHTML = `
-                        <strong>Public Key:</strong> ${BigInt(data.public_key).toString()}<br>
-                        <strong>Private Key:</strong> ${BigInt(data.private_key).toString()}`;
+                    document.getElementById("public-key").textContent = `Public Key:\n${BigInt(data.public_key).toString()}`;
+                    document.getElementById("private-key").textContent = `Private Key:\n${BigInt(data.private_key).toString()}`;
                 })
                 .catch(err => {
                     console.error("Error generating keys:", err);

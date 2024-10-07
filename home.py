@@ -175,6 +175,9 @@ def convert_to_audio():
     decrypted_audio_path = os.path.join(DECRYPTED_DIR, 'decrypted_audio.wav')
     Audio.binary_to_audio(decrypted_data, params, decrypted_audio_path)
 
+    delete_files_in_directory(ENCRYPTED_DIR)
+    delete_files_in_directory(DECRYPTED_DIR)
+
     return send_file(decrypted_audio_path, as_attachment=True)
 
 # Route to display the SNR page
@@ -269,6 +272,14 @@ def calculate_snr():
             os.remove(original_path)
         if os.path.exists(decrypted_path):
             os.remove(decrypted_path)
+
+def delete_files_in_directory(directory):
+    #Delete all files in the given directory.
+    for filename in os.listdir(directory):
+        file_path = os.path.join(directory, filename)
+        if os.path.isfile(file_path) or os.path.islink(file_path):
+            os.unlink(file_path)  # Remove the file
+            
 
 if __name__ == '__main__':
     app.run(debug=True)
